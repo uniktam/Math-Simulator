@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小學數學：行程問題模擬器</title>
+    <style>
+        /* ==========================================
+           CSS 樣式設計 (適合小學生的活潑、柔和風格)
+           ========================================== */
+        :root {
+            --primary-color: #4A90E2; /* 甲的顏色：柔和藍 */
+            --secondary-color: #E24A4A; /* 乙的顏色：柔和紅 */
+            --bg-color: #F0F4F8; /* 網頁背景色 */
+            --panel-bg: #FFFFFF; /* 面板背景色 */
+            --text-main: #333333;
+            --border-radius: 16px;
+        }
+
+        body {
+            font-family: 'Nunito', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* 左側控制台 */
+        .controls-panel {
+            background: var(--panel-bg);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .controls-panel h1 {
+            font-size: 1.4rem;
+            margin: 0;
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 2px dashed #dcdde1;
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #e1e8ed;
+        }
+
+        .input-group.a-group { border-left: 5px solid var(--primary-color); }
+        .input-group.b-group { border-left: 5px solid var(--secondary-color); }
+
+        .input-group label {
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        input[type="number"], select {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="number"]:focus, select:focus {
+            border-color: #f39c12;
+        }
+
+        select { width: 100%; text-align: left; cursor: pointer; }
+
+        /* 右側主要顯示區 */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 畫布區域 */
+        .canvas-container {
+            background: var(--panel-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas {
+            background-color: #fafbfc;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            max-width: 100%;
+        }
+
+        /* 按鈕控制區 */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:active { transform: scale(0.95); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-play { background-color: #2ecc71; }
+        .btn-play:hover:not(:disabled) { background-color: #27ae60; }
+        .btn-step { background-color: #f39c12; }
+        .btn-step:hover:not(:disabled) { background-color: #e67e22; }
+        .btn-pause { background-color: #e74c3c; }
+        .btn-pause:hover:not(:disabled) { background-color: #c0392b; }
+        .btn-reset { background-color: #95a5a6; }
+        .btn-reset:hover:not(:disabled) { background-color: #7f8c8d; }
+
+        /* 數據紀錄表格 */
+        .table-container {
+            background: var(--panel-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+            position: sticky;
+            top: 0;
+            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        tr:nth-child(even) { background-color: #fafbfc; }
+        
+        /* 響應式設計 */
+        @media (max-width: 900px) {
+            .app-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- 左側控制台 -->
+    <aside class="controls-panel">
+        <h1>🏃‍♂️ 行程問題模擬器</h1>
+        
+        <div class="input-group">
+            <label for="modeSelect">📝 情境模式切換</label>
+            <select id="modeSelect">
+                <option value="catchup">同向而行 (追及問題)</option>
+                <option value="meet">面向而行 (相遇問題)</option>
+                <option value="separate">背向而行 (分離問題)</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>📏 總距離設定 (m)</label>
+            <div class="input-row">
+                <span>軌道長度：</span>
+                <input type="number" id="maxDistInput" value="100" min="10">
+            </div>
+        </div>
+
+        <div class="input-group a-group">
+            <label style="color: var(--primary-color);">🔵 甲的設定</label>
+            <div class="input-row">
+                <span>起點位置 (m)：</span>
+                <input type="number" id="startA" value="0" min="0" step="1">
+            </div>
+            <div class="input-row">
+                <span>速率 (m/s)：</span>
+                <input type="number" id="speedA" value="5" min="0" step="0.5">
+            </div>
+            <div class="input-row">
+                <span>延遲出發 (秒)：</span>
+                <input type="number" id="delayA" value="0" min="0" step="1">
+            </div>
+        </div>
+
+        <div class="input-group b-group">
+            <label style="color: var(--secondary-color);">🟥 乙的設定</label>
+            <div class="input-row">
+                <span>起點位置 (m)：</span>
+                <input type="number" id="startB" value="40" min="0" step="1">
+            </div>
+            <div class="input-row">
+                <span>速率 (m/s)：</span>
+                <input type="number" id="speedB" value="3" min="0" step="0.5">
+            </div>
+            <div class="input-row">
+                <span>延遲出發 (秒)：</span>
+                <input type="number" id="delayB" value="0" min="0" step="1">
+            </div>
+        </div>
+    </aside>
+
+    <!-- 右側主要顯示區 -->
+    <main class="main-content">
+        <div class="canvas-container">
+            <canvas id="simCanvas" width="800" height="280"></canvas>
+            
+            <div class="action-buttons">
+                <button class="btn-play" id="btnPlay">▶️ 連續前進</button>
+                <button class="btn-step" id="btnStep">⏭️ 逐秒前進</button>
+                <button class="btn-pause" id="btnPause" disabled>⏸️ 暫停</button>
+                <button class="btn-reset" id="btnReset">🔄 重置</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>時間 (秒)</th>
+                        <th style="color: var(--primary-color);">甲位置 (m)</th>
+                        <th style="color: var(--secondary-color);">乙位置 (m)</th>
+                        <th>兩人相距 (m)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 數據將透過 JS 動態插入 -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script>
+    /* ==========================================
+       核心邏輯與 Canvas 渲染 (JavaScript)
+       ========================================== */
+       
+    // --- 1. 取得 DOM 元素 ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 輸入元素
+    const modeSelect = document.getElementById('modeSelect');
+    const maxDistInput = document.getElementById('maxDistInput');
+    const startAInput = document.getElementById('startA');
+    const speedAInput = document.getElementById('speedA');
+    const delayAInput = document.getElementById('delayA');
+    const startBInput = document.getElementById('startB');
+    const speedBInput = document.getElementById('speedB');
+    const delayBInput = document.getElementById('delayB');
+    
+    // 按鈕元素
+    const btnPlay = document.getElementById('btnPlay');
+    const btnStep = document.getElementById('btnStep');
+    const btnPause = document.getElementById('btnPause');
+    const btnReset = document.getElementById('btnReset');
+    
+    // 表格元素
+    const tableBody = document.querySelector('#dataTable tbody');
+
+    // --- 2. 狀態管理 (State) ---
+    const state = {
+        mode: 'catchup',
+        maxDist: 100,
+        time: 0,
+        isPlaying: false,
+        isFinished: false,
+        lastFrameTime: 0,
+        nextLogTime: 0, // 下一個需要記錄數據的整數秒
+        
+        // 畫布繪製參數
+        paddingX: 50, // 左右留白
+        drawWidth: 700, // 軌道實際繪製寬度
+        
+        a: { start: 0, pos: 0, speed: 5, delay: 0, dir: 1, color: '#4A90E2', y: 120 },
+        b: { start: 40, pos: 40, speed: 3, delay: 0, dir: 1, color: '#E24A4A', y: 180 }
+    };
+
+    // --- 3. 初始化與設定邏輯 ---
+    // 根據模式設定初始位置與方向
+    function setupInitialState() {
+        state.mode = modeSelect.value;
+        state.maxDist = parseFloat(maxDistInput.value) || 100;
+        
+        state.a.speed = parseFloat(speedAInput.value) || 0;
+        state.a.delay = parseFloat(delayAInput.value) || 0;
+        state.b.speed = parseFloat(speedBInput.value) || 0;
+        state.b.delay = parseFloat(delayBInput.value) || 0;
+
+        // 讀取自訂起點位置
+        state.a.start = parseFloat(startAInput.value) || 0;
+        state.b.start = parseFloat(startBInput.value) || 0;
+
+        // 根據不同模式，重置方向 (不再強制覆蓋起點位置，交由事件處理器或使用者決定)
+        if (state.mode === 'catchup') {
+            state.a.dir = 1;
+            state.b.dir = 1;
+        } else if (state.mode === 'meet') {
+            state.a.dir = 1;
+            state.b.dir = -1;
+        } else if (state.mode === 'separate') {
+            state.a.dir = -1; // 甲向左
+            state.b.dir = 1;  // 乙向右
+        }
+
+        // 初始化當前位置與時間
+        state.a.pos = state.a.start;
+        state.b.pos = state.b.start;
+        state.time = 0;
+        state.isFinished = false;
+        state.nextLogTime = 1; // 修正：從第 1 秒開始紀錄
+        
+        clearTable();
+        logData(0); // 記錄第 0 秒狀態
+        draw();
+    }
+
+    // 計算在特定時間點的位置
+    function calculatePosition(person, t) {
+        if (t <= person.delay) return person.start; // 還沒到出發時間，停在原地
+        return person.start + person.speed * (t - person.delay) * person.dir;
+    }
+
+    // --- 4. 數學更新與判定邏輯 ---
+    // 更新時間到目標時間
+    function updateToTime(targetTime) {
+        if (state.isFinished) return;
+
+        // 處理經過的整數秒，進行數據紀錄 (確保每秒精準記錄)
+        while (state.nextLogTime <= targetTime) {
+            state.a.pos = calculatePosition(state.a, state.nextLogTime);
+            state.b.pos = calculatePosition(state.b, state.nextLogTime);
+            logData(state.nextLogTime);
+            state.nextLogTime++;
+        }
+
+        state.time = targetTime;
+        state.a.pos = calculatePosition(state.a, state.time);
+        state.b.pos = calculatePosition(state.b, state.time);
+
+        checkStopCondition();
+    }
+
+    // 檢查是否達到停止條件 (相遇、或跑出邊界)
+    function checkStopCondition() {
+        const dist = Math.abs(state.a.pos - state.b.pos);
+        let stopped = false;
+        let reason = "";
+
+        // 邊界檢查：任一人跑出 [0, maxDist] 範圍
+        if (state.a.pos < 0 || state.a.pos > state.maxDist || 
+            state.b.pos < 0 || state.b.pos > state.maxDist) {
+            stopped = true;
+            reason = "角色到達邊界！";
+        }
+
+        // 模式特有條件檢查
+        if (state.mode === 'catchup') {
+            // 原本甲在乙後方，如果位置超過或等於，代表追上了
+            if (state.a.start < state.b.start && state.a.pos >= state.b.pos) {
+                // 強制將兩者位置對齊於相遇點
+                state.a.pos = state.b.pos; 
+                stopped = true;
+                reason = "甲追上乙了！";
+            }
+        } else if (state.mode === 'meet') {
+            // 兩人相向而行，若交會或距離為0則相遇
+            if (state.a.pos >= state.b.pos) {
+                // 計算精確相遇點，避免越過太多
+                const meetPos = (state.a.pos + state.b.pos) / 2; 
+                state.a.pos = meetPos;
+                state.b.pos = meetPos;
+                stopped = true;
+                reason = "兩人相遇了！";
+            }
+        }
+
+        if (stopped) {
+            state.isFinished = true;
+            
+            // 補上記錄最後相遇/結束時的精確時間與位置
+            // 確保不會跟剛好整數秒的紀錄重複
+            if (Math.abs(state.time - (state.nextLogTime - 1)) > 0.01) {
+                logData(parseFloat(state.time.toFixed(2))); 
+            }
+
+            pause();
+            draw(); // 繪製最後停下來的畫面
+            // 延遲一點點顯示提示，避免卡住畫面渲染
+            setTimeout(() => alert(`模擬結束：${reason}`), 100);
+        }
+    }
+
+    // --- 5. Canvas 繪圖邏輯 ---
+    // 將現實距離(m) 映射到 Canvas 像素(px)
+    function mapX(meters) {
+        return state.paddingX + (meters / state.maxDist) * state.drawWidth;
+    }
+
+    function draw() {
+        // 清空畫布
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. 繪製底部標尺/軌道
+        const trackY = 230;
+        ctx.beginPath();
+        ctx.moveTo(state.paddingX, trackY);
+        ctx.lineTo(state.paddingX + state.drawWidth, trackY);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#9ca3af';
+        ctx.stroke();
+
+        // 繪製刻度
+        ctx.fillStyle = '#7f8c8d';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        for (let i = 0; i <= 10; i++) {
+            const m = (state.maxDist / 10) * i;
+            const px = mapX(m);
+            ctx.beginPath();
+            ctx.moveTo(px, trackY - 5);
+            ctx.lineTo(px, trackY + 5);
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // 標示文字 (0m, 10m...)
+            ctx.fillText(`${Math.round(m)}m`, px, trackY + 20);
+        }
+
+        // 2. 繪製移動軌跡 (淡淡的殘影)
+        // 甲的軌跡
+        ctx.beginPath();
+        ctx.moveTo(mapX(state.a.start), state.a.y);
+        ctx.lineTo(mapX(state.a.pos), state.a.y);
+        ctx.lineWidth = 12;
+        ctx.strokeStyle = state.a.color;
+        ctx.globalAlpha = 0.2; // 透明度
+        ctx.stroke();
+        
+        // 乙的軌跡
+        ctx.beginPath();
+        ctx.moveTo(mapX(state.b.start), state.b.y);
+        ctx.lineTo(mapX(state.b.pos), state.b.y);
+        ctx.strokeStyle = state.b.color;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0; // 恢復透明度
+
+        // 3. 繪製角色
+        // 甲 (藍色圓形)
+        const ax = mapX(state.a.pos);
+        ctx.beginPath();
+        ctx.arc(ax, state.a.y, 16, 0, Math.PI * 2);
+        ctx.fillStyle = state.a.color;
+        ctx.fill();
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 14px Microsoft JhengHei';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('甲', ax, state.a.y);
+
+        // 乙 (紅色方形)
+        const bx = mapX(state.b.pos);
+        ctx.fillStyle = state.b.color;
+        ctx.fillRect(bx - 14, state.b.y - 14, 28, 28);
+        ctx.fillStyle = 'white';
+        ctx.fillText('乙', bx, state.b.y);
+
+        // 4. 繪製動態標示 (相距線與文字)
+        const dist = Math.abs(state.a.pos - state.b.pos);
+        if (dist > 0.5) { // 距離太近就不畫了，避免重疊難看
+            const midY = 150; // 放在兩人中間的高度
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]); // 虛線
+            ctx.moveTo(ax, midY);
+            ctx.lineTo(bx, midY);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#34495e';
+            ctx.stroke();
+            ctx.setLineDash([]); // 恢復實線
+
+            // 畫小箭頭
+            const leftX = Math.min(ax, bx);
+            const rightX = Math.max(ax, bx);
+            ctx.fillStyle = '#34495e';
+            // 左箭頭
+            ctx.beginPath(); ctx.moveTo(leftX, midY); ctx.lineTo(leftX+8, midY-4); ctx.lineTo(leftX+8, midY+4); ctx.fill();
+            // 右箭頭
+            ctx.beginPath(); ctx.moveTo(rightX, midY); ctx.lineTo(rightX-8, midY-4); ctx.lineTo(rightX-8, midY+4); ctx.fill();
+
+            // 標示文字
+            const text = `相距: ${dist.toFixed(1)} m`;
+            ctx.font = 'bold 14px sans-serif';
+            const textWidth = ctx.measureText(text).width;
+            const textX = (ax + bx) / 2;
+            
+            // 畫文字背景框讓文字更清楚
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fillRect(textX - textWidth/2 - 5, midY - 20, textWidth + 10, 20);
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillText(text, textX, midY - 10);
+        }
+
+        // 顯示當下時間
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`⏱️ 時間: ${state.time.toFixed(1)} 秒`, 20, 30);
+    }
+
+    // --- 6. 動畫迴圈與控制 ---
+    function animationLoop(timestamp) {
+        if (!state.isPlaying) return;
+
+        if (!state.lastFrameTime) state.lastFrameTime = timestamp;
+        // 計算兩幀之間的時間差 (轉換為秒)
+        const deltaTime = (timestamp - state.lastFrameTime) / 1000;
+        state.lastFrameTime = timestamp;
+
+        updateToTime(state.time + deltaTime);
+        draw();
+
+        if (state.isPlaying) {
+            requestAnimationFrame(animationLoop);
+        }
+    }
+
+    function play() {
+        if (state.isFinished) return;
+        state.isPlaying = true;
+        state.lastFrameTime = 0; // 重置幀時間
+        updateButtons();
+        requestAnimationFrame(animationLoop);
+    }
+
+    function pause() {
+        state.isPlaying = false;
+        updateButtons();
+    }
+
+    function step() {
+        if (state.isFinished) return;
+        pause(); // 如果正在播放，先暫停
+        // 強制跳到下一個整數秒
+        const nextIntSec = Math.floor(state.time) + 1;
+        updateToTime(nextIntSec);
+        draw();
+    }
+
+    function reset() {
+        pause();
+        setupInitialState();
+        updateButtons();
+    }
+
+    // --- 7. UI 與數據綁定 ---
+    function logData(timeSec) {
+        const tr = document.createElement('tr');
+        const dist = Math.abs(state.a.pos - state.b.pos);
+        
+        tr.innerHTML = `
+            <td>${timeSec}</td>
+            <td style="color: var(--primary-color); font-weight: bold;">${state.a.pos.toFixed(1)}</td>
+            <td style="color: var(--secondary-color); font-weight: bold;">${state.b.pos.toFixed(1)}</td>
+            <td>${dist.toFixed(1)}</td>
+        `;
+        tableBody.appendChild(tr);
+        // 滾動到表格底部
+        tr.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    function clearTable() {
+        tableBody.innerHTML = '';
+    }
+
+    function updateButtons() {
+        btnPlay.disabled = state.isPlaying || state.isFinished;
+        btnStep.disabled = state.isPlaying || state.isFinished;
+        btnPause.disabled = !state.isPlaying;
+    }
+
+    // --- 8. 事件監聽器綁定 ---
+    btnPlay.addEventListener('click', play);
+    btnPause.addEventListener('click', pause);
+    btnStep.addEventListener('click', step);
+    btnReset.addEventListener('click', reset);
+
+    // 處理模式切換時，自動給予適當的預設起點
+    modeSelect.addEventListener('change', () => {
+        const maxD = parseFloat(maxDistInput.value) || 100;
+        if (modeSelect.value === 'catchup') {
+            startAInput.value = 0;
+            startBInput.value = maxD * 0.4;
+        } else if (modeSelect.value === 'meet') {
+            startAInput.value = 0;
+            startBInput.value = maxD;
+        } else if (modeSelect.value === 'separate') {
+            startAInput.value = maxD / 2;
+            startBInput.value = maxD / 2;
+        }
+        reset();
+    });
+
+    // 總距離改變時，檢查起點是否超出範圍並重置
+    maxDistInput.addEventListener('change', () => {
+        const maxD = parseFloat(maxDistInput.value) || 100;
+        if (parseFloat(startAInput.value) > maxD) startAInput.value = maxD;
+        if (parseFloat(startBInput.value) > maxD) startBInput.value = maxD;
+        reset();
+    });
+
+    // 當任何數值設定改變時，自動重置系統以套用新設定
+    const inputs = [speedAInput, delayAInput, startAInput, speedBInput, delayBInput, startBInput];
+    inputs.forEach(input => {
+        input.addEventListener('change', reset);
+    });
+
+    // 初始化啟動
+    setupInitialState();
+
+</script>
+</body>
+</html>
